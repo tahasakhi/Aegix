@@ -1,6 +1,9 @@
 # Use an official Python image
 FROM python:3.10-slim
 
+# Install dependencies, including PostgreSQL client
+RUN apt-get update && apt-get install -y postgresql-client --no-install-recommends && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /app
 
@@ -8,10 +11,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the app code
+# Copy the application code and .env file
 COPY . .
-
-# Copy the .env file for the application
 COPY configs/aegix.env .env
 
 # Expose the application port
@@ -24,7 +25,7 @@ COPY backend/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Set the entrypoint to run the script
-ENTRYPOINT ["bash","/app/entrypoint.sh"]
+ENTRYPOINT ["bash", "/app/entrypoint.sh"]
 
 # Command to run the FastAPI app
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
