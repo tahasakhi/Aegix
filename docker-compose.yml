@@ -1,0 +1,29 @@
+services:
+  aegix:
+    build: .
+    container_name: aegix-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - ENV_FILE=configs/aegix.env
+    depends_on:
+      - db
+  db:
+    image: postgres:13
+    container_name: postgres-aegix
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: aegix
+      POSTGRES_PASSWORD: aegix
+      POSTGRES_DB: aegix
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+networks:
+  default:
+    name: aegix_network

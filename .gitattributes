@@ -1,0 +1,14 @@
+# Force all shell scripts to have LF line endings
+*.sh text eol=lf
+
+# Handle general text files (e.g., Python, Dockerfiles, YAML, etc.)
+*.py text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+Dockerfile text eol=lf
+*.txt text eol=lf
+
+# Ignore binary files
+*.jpg binary
+*.png binary
+*.exe binary
