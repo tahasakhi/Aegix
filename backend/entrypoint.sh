@@ -19,6 +19,7 @@ echo "PostgreSQL started"
 if [ -f /app/scripts/init.sql ]; then
     echo "Running the database initialization script..."
     PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /app/scripts/init.sql
+    echo "Initialization Complete"
 fi
 
 # Execute the original command passed to the entrypoint (i.e., running the app)
