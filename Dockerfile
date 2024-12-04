@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 COPY configs/aegix.env .env
 
+# Ensure the scripts directory is in the correct location
+COPY backend/scripts /app/scripts
+
 # Expose the application port
 EXPOSE 8000
 

@@ -1,4 +1,13 @@
--- Drop existing tables, triggers, and enum types if they exist
+-- Drop existing tables, triggers, functions, and enum types if they exist
+
+-- Drop functions
+DROP FUNCTION IF EXISTS notify_new_cve CASCADE;
+DROP FUNCTION IF EXISTS clean_solution_on_url_update CASCADE;
+DROP FUNCTION IF EXISTS update_solution_urls CASCADE;
+DROP FUNCTION IF EXISTS remove_solution_urls CASCADE;
+DROP FUNCTION IF EXISTS handle_solution_update CASCADE;
+
+-- Drop tables and cascades foreign key constraints
 DROP TABLE IF EXISTS urls_solutions CASCADE;
 DROP TABLE IF EXISTS solutions CASCADE;
 DROP TABLE IF EXISTS cves_urls CASCADE;
@@ -10,18 +19,28 @@ DROP TABLE IF EXISTS cves_vendors CASCADE;
 DROP TABLE IF EXISTS cves_cwes CASCADE;
 DROP TABLE IF EXISTS cwes CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS users_products CASCADE;
+DROP TABLE IF EXISTS users_vendors CASCADE;
+DROP TABLE IF EXISTS users_cwes CASCADE;
 DROP TABLE IF EXISTS organizations CASCADE;
 DROP TABLE IF EXISTS admins CASCADE;
 DROP TABLE IF EXISTS alerts CASCADE;
 DROP TABLE IF EXISTS plan_types;
+DROP TABLE IF EXISTS roles CASCADE;
 
 -- Drop existing enum types if they exist
-DROP TYPE IF EXISTS role_enum;
-DROP TYPE IF EXISTS plan_type_enum;
+DROP TYPE IF EXISTS role_enum CASCADE;
+DROP TYPE IF EXISTS plan_type_enum CASCADE;
 
--- Enum Types for Role and Plan Types
-CREATE TYPE role_enum AS ENUM ('admin', 'tester', 'developer');
-CREATE TYPE plan_type_enum AS ENUM ('solo', 'starter', 'enterprise');
+-- Drop sequences if any exist
+DROP SEQUENCE IF EXISTS plan_types_plan_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS roles_role_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS admins_admin_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS organizations_organization_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS users_user_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS vendors_vendor_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS products_product_id_seq CASCADE;
+DROP SEQUENCE IF EXISTS cves_cve_id_seq CASCADE;
 
 -- Create the plan_types table
 CREATE TABLE plan_types(
@@ -143,14 +162,16 @@ CREATE TABLE urls_solutions (
 CREATE TABLE cves_products (
     cve_id INT REFERENCES cves(id),
     product_id INT REFERENCES products(product_id),
-    PRIMARY KEY (cve_id, product_id)
+    PRIMARY KEY (cve_id, product_id),
+    is_predicted BOOLEAN
 );
 
 -- Create the cves_vendors table
 CREATE TABLE cves_vendors (
     cve_id INT REFERENCES cves(id),
     vendor_id INT REFERENCES vendors(vendor_id),
-    PRIMARY KEY (cve_id, vendor_id)
+    PRIMARY KEY (cve_id, vendor_id),
+    is_predicted BOOLEAN
 );
 
 -- Create the cves_cwes table

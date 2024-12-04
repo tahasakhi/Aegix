@@ -8,13 +8,13 @@ services:
       - ./backend:/app/backend
       - ./configs:/app/configs
       - ./frontend:/app/frontend
+      - ./scripts:/scripts
     env_file:
       - ./configs/aegix.env
     depends_on:
       - db
     command:
       ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
-    entrypoint: ["/bin/bash", "/app/entrypoint.sh"]
 
   db:
     image: postgres:13
@@ -30,6 +30,7 @@ services:
 
 volumes:
   postgres_data:
+
 networks:
   default:
     name: aegix_network
