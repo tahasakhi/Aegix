@@ -15,6 +15,8 @@ services:
       - db
     command:
       ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    networks:
+      - common_network
 
   db:
     image: postgres:13
@@ -27,10 +29,12 @@ services:
       POSTGRES_DB: aegix
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - common_network
 
 volumes:
   postgres_data:
 
 networks:
-  default:
-    name: aegix_network
+  common_network:
+    driver: bridge

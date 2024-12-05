@@ -21,14 +21,5 @@ COPY backend/scripts /app/scripts
 # Expose the application port
 EXPOSE 8000
 
-# Copy the entrypoint script into the container
-COPY backend/entrypoint.sh /app/entrypoint.sh
-
-# Give execution permissions to the entrypoint script
-RUN chmod +x /app/entrypoint.sh
-
-# Set the entrypoint to run the script
-ENTRYPOINT ["bash", "/app/entrypoint.sh"]
-
 # Command to run the FastAPI app
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
