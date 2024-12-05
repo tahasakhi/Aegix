@@ -29,7 +29,7 @@ app.add_middleware(
 # Include API routers
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(plan_router, prefix="/api/plan", tags=["Plan"])
-app.include_router(subscription_router, prefix="/api/subscription", tags=["Subscription"])
+app.include_router(subscription_router, prefix="/api/subscriptions", tags=["Subscriptions"])
 app.include_router(cves_router, prefix="/api/cves", tags=["CVEs"])
 app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard Statistics"])
 

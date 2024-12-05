@@ -27,6 +27,7 @@ services:
       POSTGRES_USER: aegix
       POSTGRES_PASSWORD: aegix
       POSTGRES_DB: aegix
+      PYTHONPATH: /app/backend # Combine environment variables here
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

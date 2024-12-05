@@ -1,7 +1,7 @@
 from sqlalchemy import Column,Integer, String, Float, Boolean, Text, DateTime, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from database import Base
+from .database import Base
 
 class PlanType(Base):
     __tablename__ = "plan_types"

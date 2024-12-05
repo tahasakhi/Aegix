@@ -11,12 +11,15 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Set PYTHONPATH so the application can find modules
+ENV PYTHONPATH=/app/backend
+
 # Copy the application code and .env file
 COPY . .
 COPY configs/aegix.env .env
 
 # Ensure the scripts directory is in the correct location
-COPY backend/scripts /app/scripts
+RUN chmod -R 755 /app
 
 # Expose the application port
 EXPOSE 8000
