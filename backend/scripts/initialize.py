@@ -41,7 +41,7 @@ def run_init_scripts():
     cursor = conn.cursor()
 
     try:
-        with open('/app/scripts/init_db.sql', 'r') as f:
+        with open('/app/backend/scripts/initialize.sql', 'r') as f:
             cursor.execute(f.read())
         print("Initialization scripts executed.")
     except Exception as e:

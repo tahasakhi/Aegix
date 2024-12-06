@@ -112,7 +112,7 @@ CREATE TABLE vendors (
     vendor_id SERIAL PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    vend_name VARCHAR(100) NOT NULL
+    vendor_name VARCHAR(100) NOT NULL
 );
 
 -- Create the products table
@@ -138,7 +138,7 @@ CREATE TABLE cves (
 -- Create the cves_urls table
 CREATE TABLE cves_urls (
     url_id SERIAL PRIMARY KEY,
-    cve_id INT REFERENCES cves(id) ON DELETE CASCADE,
+    cve_id VARCHAR(50) REFERENCES cves(cve_id) ON DELETE CASCADE,
     url TEXT NOT NULL,
     content TEXT
 );
@@ -146,7 +146,7 @@ CREATE TABLE cves_urls (
 -- Create the solutions table
 CREATE TABLE solutions (
     id SERIAL PRIMARY KEY,
-    cve_id INT REFERENCES cves(id) ON DELETE CASCADE,
+    cve_id VARCHAR(50) REFERENCES cves(cve_id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     solution TEXT
 );
@@ -160,7 +160,7 @@ CREATE TABLE urls_solutions (
 
 -- Create the cves_products table
 CREATE TABLE cves_products (
-    cve_id INT REFERENCES cves(id),
+    cve_id VARCHAR(50) REFERENCES cves(cve_id),
     product_id INT REFERENCES products(product_id),
     PRIMARY KEY (cve_id, product_id),
     is_predicted BOOLEAN
@@ -168,7 +168,7 @@ CREATE TABLE cves_products (
 
 -- Create the cves_vendors table
 CREATE TABLE cves_vendors (
-    cve_id INT REFERENCES cves(id),
+    cve_id VARCHAR(50) REFERENCES cves(cve_id),
     vendor_id INT REFERENCES vendors(vendor_id),
     PRIMARY KEY (cve_id, vendor_id),
     is_predicted BOOLEAN
@@ -176,8 +176,8 @@ CREATE TABLE cves_vendors (
 
 -- Create the cves_cwes table
 CREATE TABLE cves_cwes (
-    cve_id INT REFERENCES cves(id),
-    cwe_id INT REFERENCES cwes(id),
+    cve_id VARCHAR(50) REFERENCES cves(cve_id),
+    cwe_id VARCHAR(50) REFERENCES cwes(cwe_id),
     PRIMARY KEY (cve_id, cwe_id)
 );
 
@@ -198,14 +198,14 @@ CREATE TABLE users_vendors (
 -- Create the users_cwes table
 CREATE TABLE users_cwes (
     user_id INT REFERENCES users(user_id),
-    cwe_id INT REFERENCES cwes(id),
+    cwe_id VARCHAR(50) REFERENCES cwes(cwe_id),
     PRIMARY KEY (user_id, cwe_id)
 );
 
 -- Create a table to track alerts for CVEs
 CREATE TABLE alerts (
     alert_id SERIAL PRIMARY KEY,
-    cve_id INT REFERENCES cves(id) ON DELETE CASCADE,
+    cve_id VARCHAR(50) REFERENCES cves(cve_id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_new_cve BOOLEAN DEFAULT TRUE,
     is_treated BOOLEAN DEFAULT FALSE,
@@ -231,12 +231,10 @@ EXECUTE FUNCTION notify_new_cve();
 CREATE OR REPLACE FUNCTION clean_solution_on_url_update()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Delete existing solutions if URLs are updated
     DELETE FROM urls_solutions
-    WHERE solution_id IN (SELECT id FROM solutions WHERE cve_id = NEW.cve_id);
-
-    -- Optional: Trigger AI-based solution rebuilding here if needed
-
+    WHERE solution_id IN (
+        SELECT id FROM solutions WHERE cve_id = NEW.cve_id
+    );
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -288,22 +286,58 @@ AFTER DELETE ON cves_urls
 FOR EACH ROW
 EXECUTE FUNCTION remove_solution_urls();
 
+
 -- Trigger function to handle solution updates when new URLs are linked to a CVE
 CREATE OR REPLACE FUNCTION handle_solution_update()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $$ 
 BEGIN
-    -- Check if there are any new URLs linked to the CVE and add them to solutions
-    IF EXISTS (SELECT 1 FROM cves_urls WHERE cve_id = NEW.cve_id) THEN
-        -- Add or remove URLs as needed (handled by triggers above)
-        NULL;  -- Placeholder for any additional operations you might want to add
-    END IF;
+    -- Declare variables
+    DECLARE
+        current_solution_id INT;
+        current_urls TEXT[];
+        new_urls TEXT[];
+    BEGIN
+        -- Get the current set of URLs for the given CVE
+        SELECT array_agg(url) 
+        INTO current_urls
+        FROM cves_urls
+        WHERE cve_id = NEW.cve_id;
 
-    RETURN NEW;
+        -- Get the new set of URLs linked to the CVE
+        SELECT array_agg(url) 
+        INTO new_urls
+        FROM cves_urls
+        WHERE cve_id = NEW.cve_id;
+
+        -- Check if the set of URLs has changed
+        IF current_urls IS DISTINCT FROM new_urls THEN
+            -- Remove the old solution if it exists
+            DELETE FROM urls_solutions
+            USING solutions
+            WHERE solutions.id = urls_solutions.solution_id
+            AND solutions.cve_id = NEW.cve_id;
+
+            -- Insert the new solution into solutions (assuming the solution text comes from elsewhere)
+            INSERT INTO solutions (cve_id, solution)
+            VALUES (NEW.cve_id, 'Updated solution text')
+            RETURNING id INTO current_solution_id;
+
+            -- Link the new URLs to the new solution
+            INSERT INTO urls_solutions (solution_id, url_id)
+            SELECT current_solution_id, url_id
+            FROM cves_urls
+            WHERE cve_id = NEW.cve_id;
+        END IF;
+        
+        RETURN NEW;
+    END;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to handle solution update after new URLs are linked to a CVE
 CREATE TRIGGER trg_handle_solution_update
-AFTER INSERT OR UPDATE ON cves
+AFTER INSERT OR UPDATE ON cves_urls
 FOR EACH ROW
 EXECUTE FUNCTION handle_solution_update();
+
+

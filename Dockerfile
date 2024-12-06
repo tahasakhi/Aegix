@@ -15,8 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONPATH=/app/backend
 
 # Copy the application code and .env file
-COPY . .
-COPY configs/aegix.env .env
+# Copy specific directories or files
+COPY backend/ /app/backend/
+COPY frontend/ /app/frontend/
+COPY configs/ /app/configs/
 
 # Ensure the scripts directory is in the correct location
 RUN chmod -R 755 /app
