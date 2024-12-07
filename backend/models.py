@@ -74,7 +74,7 @@ class Vendor(Base):
     vendor_id = Column(Integer, primary_key=True, autoincrement=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
-    vend_name = Column(String(100), nullable=False)
+    vendor_name = Column(String(100), nullable=False)
 
 
 class Product(Base):

@@ -24,7 +24,7 @@ class SubscriptionUpdateRequest(BaseModel):
 # extract all vendors and products
 @router.get("/options/")
 def fetch_options(db: Session = Depends(get_db)):
-    vendors = db.query(Vendor.vend_name).all()
+    vendors = db.query(Vendor.vendor_name).all()
     products = db.query(Product.product_name).all()
     return {
         "vendors": [vendor[0] for vendor in vendors],
@@ -36,7 +36,7 @@ def fetch_options(db: Session = Depends(get_db)):
 def fetch_subscriptions(user_id: int, db: Session = Depends(get_db)):
     # look for subscribed vendors
     subscribed_vendors = (
-        db.query(Vendor.vend_name)
+        db.query(Vendor.vendor_name)
         .join(User_Vendor, Vendor.vendor_id == User_Vendor.vendor_id)
         .filter(User_Vendor.user_id == user_id)
         .all()
@@ -73,14 +73,14 @@ def save_subscriptions(data: SubscriptionUpdateRequest, db: Session = Depends(ge
     existing_product_ids = {product[0] for product in existing_product_subscriptions}
 
     for vendor_name in data.vendors:
-        vendor = db.query(Vendor).filter(Vendor.vend_name == vendor_name).first()
+        vendor = db.query(Vendor).filter(Vendor.vendor_name == vendor_name).first()
         if vendor and vendor.vendor_id not in existing_vendor_ids:
             # Add new vendor subscription
             user_vendor = User_Vendor(user_id=data.user_id, vendor_id=vendor.vendor_id)
             db.add(user_vendor)
 
     for vendor_id in existing_vendor_ids:
-        vendor_name = db.query(Vendor.vend_name).filter(Vendor.vendor_id == vendor_id).scalar()
+        vendor_name = db.query(Vendor.vendor_name).filter(Vendor.vendor_id == vendor_id).scalar()
         if vendor_name not in data.vendors:
             # Remove vendor subscription if not in the new list
             db.query(User_Vendor).filter(
