@@ -1,19 +1,10 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import Text
-from ..database import SessionLocal
 from ..models import PlanType, Organization, User
 from pydantic import BaseModel
-from typing import List
+from ..database import get_db 
 
 router = APIRouter()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 class PackageChoice(BaseModel):
     user_id: int

@@ -4,16 +4,9 @@ from ..database import SessionLocal
 from ..models import Vendor, Product, User_Vendor, User_Product
 from pydantic import BaseModel
 from typing import List
+from ..database import get_db 
 
 router = APIRouter()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 class SubscriptionUpdateRequest(BaseModel):
     user_id: int
@@ -22,7 +15,7 @@ class SubscriptionUpdateRequest(BaseModel):
 
 
 # extract all vendors and products
-@router.get("/options/")
+@router.get("/subscription_options/")
 def fetch_options(db: Session = Depends(get_db)):
     vendors = db.query(Vendor.vendor_name).all()
     products = db.query(Product.product_name).all()

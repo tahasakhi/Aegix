@@ -1,56 +1,9 @@
 import os
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime, Boolean, Float
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
-
-DATABASE_URL = os.environ['AEGIX_DATABASE_URL']  
-
-# Database setup
-Base = declarative_base()
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Database Models
-class PlanType(Base):
-    __tablename__ = "plan_types"
-    plan_id = Column(Integer, primary_key=True, index=True)
-    plan_name = Column(String(50), nullable=False)
-    plan_price = Column(Float, nullable=False)
-    immediate_notification = Column(Boolean, default=False)
-    max_users = Column(Integer, nullable=False)
-    max_subscriptions = Column(Integer, nullable=False)
-
-class Organization(Base):
-    __tablename__ = "organizations"
-    organization_id = Column(Integer, primary_key=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    name = Column(String(100), nullable=False)
-    username = Column(String(100), nullable=False, unique=True)
-    email = Column(String(100), nullable=False, unique=True)
-    password = Column(String(100), nullable=False)
-    plan_type = Column(Integer, ForeignKey("plan_types.plan_id"))
-    max_subscriptions = Column(Integer, nullable=True)
-    immediate_notification = Column(Boolean, default=False)
-
-class User(Base):
-    __tablename__ = "users"
-    user_id = Column(Integer, primary_key=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    organization_id = Column(Integer, ForeignKey("organizations.organization_id"))
-    first_name = Column(String(50), nullable=False)
-    last_name = Column(String(50), nullable=False)
-    email = Column(String(100), nullable=False, unique=True)
-    password = Column(String(100), nullable=False)
-
-# Initialize the database
-Base.metadata.create_all(bind=engine)
+from ..models import *
+from ..database import get_db 
 
 # FastAPI Router
 router = APIRouter()
@@ -74,13 +27,9 @@ class ResetPassword(BaseModel):
     organization_username: str
     new_password: str
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+class AuthCredentials(BaseModel):
+    email: str
+    password: str
 
 # Routes
 @router.post("/register/organization")
@@ -132,6 +81,22 @@ def register_user(data: RegisterUser, db: Session = Depends(get_db)):
         "message": "User registered successfully",
         "user_id": user.user_id
     }
+
+# Authentication Route
+@router.post("/authenticate")
+def authenticate(credentials: AuthCredentials, db: Session = Depends(get_db)):
+    # Check credentials in the Organization table
+    organization = db.query(Organization).filter_by(email=credentials.email, password=credentials.password).first()
+    if organization:
+        return {"message": "You are logged in as organization", "organization_id": organization.organization_id}
+
+    # Check credentials in the User table
+    user = db.query(User).filter_by(email=credentials.email, password=credentials.password).first()
+    if user:
+        return {"message": "You are logged in as user", "user_id": user.user_id}
+
+    # If no match found
+    raise HTTPException(status_code=401, detail="Invalid email or password")
 
 @router.post("/reset-password")
 def reset_password(data: ResetPassword, db: Session = Depends(get_db)):
