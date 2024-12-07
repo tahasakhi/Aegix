@@ -340,4 +340,10 @@ AFTER INSERT OR UPDATE ON cves_urls
 FOR EACH ROW
 EXECUTE FUNCTION handle_solution_update();
 
+-- Insert the types of plans available
+INSERT INTO plan_types (plan_name, plan_price, immediate_notification, max_users, max_subscriptions)
+VALUES 
+('Basic', 0.0, false, 1, 5),
+('Pro', 19.99, true, 5, 15),
+('Enterprise', 49.99, true, 10, 50);
 
