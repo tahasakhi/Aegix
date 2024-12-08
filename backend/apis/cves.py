@@ -79,49 +79,244 @@ async def get_cves(
     return result
 
 # Fetch CVEs based on user subscriptions to vendors
-@router.get("/subscriptions/vendors", response_model=List[CVEWithLinks])  # Updated response model
+@router.get("/subscriptions/vendors", response_model=List[CVEWithLinks])
 async def get_cves_by_vendor_subscription(user_id: int, db: Session = Depends(get_db)):
-    # Fetch vendor subscriptions for the user
-    vendor_ids = db.query(User_Vendor).filter(User_Vendor.user_id == user_id).all()
-    vendor_ids = [vendor.vendor_id for vendor in vendor_ids]
+    vendor_ids = db.query(User_Vendor.vendor_id).filter(User_Vendor.user_id == user_id).all()
+    vendor_ids = [vendor[0] for vendor in vendor_ids]
 
-    cves = db.query(CVE).join(CVE_Vendor).filter(CVE_Vendor.vendor_id.in_(vendor_ids)).order_by(CVE.updated_at.desc()).all()
-    return [CVEWithLinks.from_orm(cve) for cve in cves]
+    cves = (
+        db.query(CVE)
+        .join(CVE_Vendor)
+        .filter(CVE_Vendor.vendor_id.in_(vendor_ids))
+        .order_by(CVE.updated_at.desc())
+        .all()
+    )
+
+    result = []
+    for cve in cves:
+        products = (
+            db.query(Product)
+            .join(CVE_Product)
+            .filter(CVE_Product.cve_id == cve.cve_id)
+            .all()
+        )
+        vendors = (
+            db.query(Vendor)
+            .join(CVE_Vendor)
+            .filter(CVE_Vendor.cve_id == cve.cve_id)
+            .all()
+        )
+        cwes = (
+            db.query(CWE)
+            .join(CVE_CWE)
+            .filter(CVE_CWE.cve_id == cve.cve_id)
+            .all()
+        )
+        urls = (
+            db.query(CVE_URL)
+            .filter(CVE_URL.cve_id == cve.cve_id)
+            .all()
+        )
+
+        cve_data = CVEWithLinks(
+            cve_id=cve.cve_id,
+            summary=cve.summary,
+            cvss2=cve.cvss2,
+            cvss3=cve.cvss3,
+            created_at=cve.created_at,
+            updated_at=cve.updated_at,
+            products=[product.product_name for product in products],
+            vendors=[vendor.vendor_name for vendor in vendors],
+            cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],
+            urls=[{"url": url.url, "content": url.content or None} for url in urls],
+        )
+        result.append(cve_data)
+
+    return result
+
 
 # Fetch CVEs based on user subscriptions to products
-@router.get("/subscriptions/products", response_model=List[CVEWithLinks])  # Updated response model
+@router.get("/subscriptions/products", response_model=List[CVEWithLinks])
 async def get_cves_by_product_subscription(user_id: int, db: Session = Depends(get_db)):
-    # Fetch product subscriptions for the user
-    product_ids = db.query(User_Product).filter(User_Product.user_id == user_id).all()
-    product_ids = [product.product_id for product in product_ids]
+    product_ids = db.query(User_Product.product_id).filter(User_Product.user_id == user_id).all()
+    product_ids = [product[0] for product in product_ids]
 
-    cves = db.query(CVE).join(CVE_Product).filter(CVE_Product.product_id.in_(product_ids)).order_by(CVE.updated_at.desc()).all()
-    return [CVEWithLinks.from_orm(cve) for cve in cves]
+    cves = (
+        db.query(CVE)
+        .join(CVE_Product)
+        .filter(CVE_Product.product_id.in_(product_ids))
+        .order_by(CVE.updated_at.desc())
+        .all()
+    )
+
+    result = []
+    for cve in cves:
+        products = (
+            db.query(Product)
+            .join(CVE_Product)
+            .filter(CVE_Product.cve_id == cve.cve_id)
+            .all()
+        )
+        vendors = (
+            db.query(Vendor)
+            .join(CVE_Vendor)
+            .filter(CVE_Vendor.cve_id == cve.cve_id)
+            .all()
+        )
+        cwes = (
+            db.query(CWE)
+            .join(CVE_CWE)
+            .filter(CVE_CWE.cve_id == cve.cve_id)
+            .all()
+        )
+        urls = (
+            db.query(CVE_URL)
+            .filter(CVE_URL.cve_id == cve.cve_id)
+            .all()
+        )
+
+        cve_data = CVEWithLinks(
+            cve_id=cve.cve_id,
+            summary=cve.summary,
+            cvss2=cve.cvss2,
+            cvss3=cve.cvss3,
+            created_at=cve.created_at,
+            updated_at=cve.updated_at,
+            products=[product.product_name for product in products],
+            vendors=[vendor.vendor_name for vendor in vendors],
+            cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],
+            urls=[{"url": url.url, "content": url.content or None} for url in urls],
+        )
+        result.append(cve_data)
+
+    return result
+
 
 # Fetch CVEs based on user subscriptions to CWEs
-@router.get("/subscriptions/cwes", response_model=List[CVEWithLinks])  # Updated response model
+@router.get("/subscriptions/cwes", response_model=List[CVEWithLinks])
 async def get_cves_by_cwe_subscription(user_id: int, db: Session = Depends(get_db)):
-    # Fetch CWE subscriptions for the user
-    cwe_ids = db.query(User_CWE).filter(User_CWE.user_id == user_id).all()
-    cwe_ids = [cwe.cwe_id for cwe in cwe_ids]
+    cwe_ids = db.query(User_CWE.cwe_id).filter(User_CWE.user_id == user_id).all()
+    cwe_ids = [cwe[0] for cwe in cwe_ids]
 
-    cves = db.query(CVE).join(CVE_CWE).filter(CVE_CWE.cwe_id.in_(cwe_ids)).order_by(CVE.updated_at.desc()).all()
-    return [CVEWithLinks.from_orm(cve) for cve in cves]
+    cves = (
+        db.query(CVE)
+        .join(CVE_CWE)
+        .filter(CVE_CWE.cwe_id.in_(cwe_ids))
+        .order_by(CVE.updated_at.desc())
+        .all()
+    )
+
+    result = []
+    for cve in cves:
+        products = (
+            db.query(Product)
+            .join(CVE_Product)
+            .filter(CVE_Product.cve_id == cve.cve_id)
+            .all()
+        )
+        vendors = (
+            db.query(Vendor)
+            .join(CVE_Vendor)
+            .filter(CVE_Vendor.cve_id == cve.cve_id)
+            .all()
+        )
+        cwes = (
+            db.query(CWE)
+            .join(CVE_CWE)
+            .filter(CVE_CWE.cve_id == cve.cve_id)
+            .all()
+        )
+        urls = (
+            db.query(CVE_URL)
+            .filter(CVE_URL.cve_id == cve.cve_id)
+            .all()
+        )
+
+        cve_data = CVEWithLinks(
+            cve_id=cve.cve_id,
+            summary=cve.summary,
+            cvss2=cve.cvss2,
+            cvss3=cve.cvss3,
+            created_at=cve.created_at,
+            updated_at=cve.updated_at,
+            products=[product.product_name for product in products],
+            vendors=[vendor.vendor_name for vendor in vendors],
+            cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],
+            urls=[{"url": url.url, "content": url.content or None} for url in urls],
+        )
+        result.append(cve_data)
+
+    return result
+
 
 # Fetch CVEs based on all user subscriptions (vendors, products, CWEs)
-@router.get("/subscriptions", response_model=List[CVEWithLinks])  # Updated response model
+@router.get("/subscriptions", response_model=List[CVEWithLinks])
 async def get_cves_by_all_subscriptions(user_id: int, db: Session = Depends(get_db)):
     # Fetch vendor, product, and CWE subscriptions for the user
-    vendor_ids = db.query(User_Vendor).filter(User_Vendor.user_id == user_id).all()
-    product_ids = db.query(User_Product).filter(User_Product.user_id == user_id).all()
-    cwe_ids = db.query(User_CWE).filter(User_CWE.user_id == user_id).all()
-    
-    vendor_ids = [vendor.vendor_id for vendor in vendor_ids]
-    product_ids = [product.product_id for product in product_ids]
-    cwe_ids = [cwe.cwe_id for cwe in cwe_ids]
+    vendor_ids = db.query(User_Vendor.vendor_id).filter(User_Vendor.user_id == user_id).all()
+    product_ids = db.query(User_Product.product_id).filter(User_Product.user_id == user_id).all()
+    cwe_ids = db.query(User_CWE.cwe_id).filter(User_CWE.user_id == user_id).all()
 
-    cves = db.query(CVE).join(CVE_Vendor).filter(CVE_Vendor.vendor_id.in_(vendor_ids)) \
-        .join(CVE_Product).filter(CVE_Product.product_id.in_(product_ids)) \
-        .join(CVE_CWE).filter(CVE_CWE.cwe_id.in_(cwe_ids)) \
-        .order_by(CVE.updated_at.desc()).all()
-    return [CVEWithLinks.from_orm(cve) for cve in cves]
+    # Extract IDs into lists
+    vendor_ids = [vendor[0] for vendor in vendor_ids]
+    product_ids = [product[0] for product in product_ids]
+    cwe_ids = [cwe[0] for cwe in cwe_ids]
+
+    # Fetch CVEs that match any of the subscriptions
+    cves = (
+        db.query(CVE)
+        .join(CVE_Vendor, CVE_Vendor.cve_id == CVE.cve_id, isouter=True)
+        .join(CVE_Product, CVE_Product.cve_id == CVE.cve_id, isouter=True)
+        .join(CVE_CWE, CVE_CWE.cve_id == CVE.cve_id, isouter=True)
+        .filter(
+            (CVE_Vendor.vendor_id.in_(vendor_ids)) |
+            (CVE_Product.product_id.in_(product_ids)) |
+            (CVE_CWE.cwe_id.in_(cwe_ids))
+        )
+        .order_by(CVE.updated_at.desc())
+        .all()
+    )
+
+    # Construct the response
+    result = []
+    for cve in cves:
+        products = (
+            db.query(Product)
+            .join(CVE_Product)
+            .filter(CVE_Product.cve_id == cve.cve_id)
+            .all()
+        )
+        vendors = (
+            db.query(Vendor)
+            .join(CVE_Vendor)
+            .filter(CVE_Vendor.cve_id == cve.cve_id)
+            .all()
+        )
+        cwes = (
+            db.query(CWE)
+            .join(CVE_CWE)
+            .filter(CVE_CWE.cve_id == cve.cve_id)
+            .all()
+        )
+        urls = (
+            db.query(CVE_URL)
+            .filter(CVE_URL.cve_id == cve.cve_id)
+            .all()
+        )
+
+        cve_data = CVEWithLinks(
+            cve_id=cve.cve_id,
+            summary=cve.summary,
+            cvss2=cve.cvss2,
+            cvss3=cve.cvss3,
+            created_at=cve.created_at,
+            updated_at=cve.updated_at,
+            products=[product.product_name for product in products],
+            vendors=[vendor.vendor_name for vendor in vendors],
+            cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],
+            urls=[{"url": url.url, "content": url.content or None} for url in urls],
+        )
+        result.append(cve_data)
+
+    return result
+
