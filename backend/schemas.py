@@ -27,3 +27,76 @@ class CVEWithLinks(BaseModel):
     class Config:
         from_attributes = True
 
+
+
+class VulnerableProduct(BaseModel):
+    product_name: str
+    cve_count: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "product_name": "Product A",
+                "cve_count": 12
+            }
+        }
+
+class VulnerableVendor(BaseModel):
+    vendor_name: str
+    cve_count: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "vendor_name": "Vendor X",
+                "cve_count": 8
+            }
+        }
+
+class SubscriptionCounts(BaseModel):
+    products: int
+    vendors: int
+    cwes: int
+    total: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "products": 10,
+                "vendors": 5,
+                "cwes": 2,
+                "total": 17
+            }
+        }
+from pydantic import BaseModel
+
+class AlertStats(BaseModel):
+    new_cves_count: int
+    treated_cves_count: int
+class VulnerableProduct(BaseModel):
+    product_name: str
+    vulnerability_count: int
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "product_name": "Example Product",
+                "vulnerability_count": 25
+            }
+        }
+
+class MostOccurringCVE(BaseModel):
+    cve_id: str
+    occurrence_count: int
+    summary: str
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "cve_id": "CVE-2024-1234",
+                "occurrence_count": 25,
+                "summary": "Buffer overflow in XYZ product..."
+            }
+        }
+
+

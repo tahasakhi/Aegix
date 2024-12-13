@@ -20,7 +20,7 @@ class Role(Base):
     role_name = Column(String(50))
 
 # Define the Admins model
-class Admin(Base):
+class Admins(Base):
     __tablename__ = "admins"
     admin_id = Column(Integer, primary_key=True, autoincrement=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
@@ -67,6 +67,7 @@ class CWE(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
     name = Column(String(250))
     description = Column(Text)
+    cwe_url = Column(Text)
 
 # Define the Vendor model
 class Vendor(Base):
@@ -102,7 +103,8 @@ class CVE_URL(Base):
     url_id = Column(Integer, primary_key=True, autoincrement=True)
     cve_id = Column(String(50), ForeignKey("cves.cve_id", ondelete="CASCADE"))
     url = Column(Text, nullable=False)
-    content = Column(Text)
+    summary = Column(Text)
+    title = Column(Text)
 
 # Define the Solution model
 class Solution(Base):
@@ -119,7 +121,7 @@ class URLSolution(Base):
     url_id = Column(Integer, ForeignKey("cves_urls.url_id", ondelete="CASCADE"), primary_key=True)
 
 # Define the Alert model
-class Alert(Base):
+class Alerts(Base):
     __tablename__ = "alerts"
     alert_id = Column(Integer, primary_key=True, autoincrement=True)
     cve_id = Column(String(50), ForeignKey("cves.cve_id", ondelete="CASCADE"))
@@ -160,3 +162,4 @@ class CVE_CWE(Base):
     __tablename__ = "cves_cwes"
     cve_id = Column(String(50), ForeignKey("cves.cve_id"), primary_key=True)
     cwe_id = Column(String(50), ForeignKey("cwes.cwe_id"), primary_key=True)
+

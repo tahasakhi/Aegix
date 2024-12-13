@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from ..database import get_db
@@ -13,10 +14,10 @@ def filter_cves_by_time(db: Session, time_filter: Optional[str] = None):
     now = datetime.now(timezone.utc)
     if time_filter == '24h':
         delta = timedelta(days=1)
-    elif time_filter == '1w':
-        delta = timedelta(weeks=1)
+    elif time_filter == '3d':
+        delta = timedelta(days=3)
     elif time_filter == '1m':
-        delta = timedelta(weeks=4)
+        delta = timedelta(weeks=1)
     else:
         return db.query(CVE).order_by(CVE.updated_at.desc()).all()
 
@@ -70,13 +71,20 @@ async def get_cves(
             vendors=[vendor.vendor_name for vendor in vendors],
             cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],  # Ensure non-null CWEs
             urls=[
-                {"url": url.url, "content": url.content or None} for url in urls
+                {"url": url.url, "content": url.title or None} for url in urls
             ],  # Ensure robust URL content
         )
 
         result.append(cve_data)
 
     return result
+
+# Function to return the count of the number of CVEs in the database
+@router.get("/count", response_model=int)
+def get_cve_count(db: Session = Depends(get_db)):
+    cve_count = db.query(func.count(CVE.cve_id)).scalar()
+    return cve_count
+
 
 # Fetch CVEs based on user subscriptions to vendors
 @router.get("/subscriptions/vendors", response_model=List[CVEWithLinks])
@@ -128,7 +136,7 @@ async def get_cves_by_vendor_subscription(user_id: int, db: Session = Depends(ge
             products=[product.product_name for product in products],
             vendors=[vendor.vendor_name for vendor in vendors],
             cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],
-            urls=[{"url": url.url, "content": url.content or None} for url in urls],
+            urls=[{"url": url.url, "content": url.title or None} for url in urls],
         )
         result.append(cve_data)
 
@@ -185,7 +193,7 @@ async def get_cves_by_product_subscription(user_id: int, db: Session = Depends(g
             products=[product.product_name for product in products],
             vendors=[vendor.vendor_name for vendor in vendors],
             cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],
-            urls=[{"url": url.url, "content": url.content or None} for url in urls],
+            urls=[{"url": url.url, "content": url.title or None} for url in urls],
         )
         result.append(cve_data)
 
@@ -242,11 +250,61 @@ async def get_cves_by_cwe_subscription(user_id: int, db: Session = Depends(get_d
             products=[product.product_name for product in products],
             vendors=[vendor.vendor_name for vendor in vendors],
             cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],
-            urls=[{"url": url.url, "content": url.content or None} for url in urls],
+            urls=[{"url": url.url, "content": url.title or None} for url in urls],
         )
         result.append(cve_data)
 
     return result
+
+@router.get("/{cve_id}", response_model=CVEWithLinks)  # Fetch a single CVE by its ID
+async def get_cve_by_id(cve_id: int, db: Session = Depends(get_db)):
+    # Fetch the CVE by its cve_id
+    cve = db.query(CVE).filter(CVE.cve_id == cve_id).first()
+    
+    # If the CVE does not exist, return a 404 error
+    if not cve:
+        raise HTTPException(status_code=404, detail="CVE not found")
+
+    # Query linked data for the CVE
+    products = (
+        db.query(Product)
+        .join(CVE_Product)
+        .filter(CVE_Product.cve_id == cve.cve_id)
+        .all()
+    )
+    vendors = (
+        db.query(Vendor)
+        .join(CVE_Vendor)
+        .filter(CVE_Vendor.cve_id == cve.cve_id)
+        .all()
+    )
+    cwes = (
+        db.query(CWE)
+        .join(CVE_CWE)
+        .filter(CVE_CWE.cve_id == cve.cve_id)
+        .all()
+    )
+    urls = (
+        db.query(CVE_URL)
+        .filter(CVE_URL.cve_id == cve.cve_id)
+        .all()
+    )
+
+    # Construct the CVE data in the format of the Pydantic model
+    cve_data = CVEWithLinks(
+        cve_id=cve.cve_id,
+        summary=cve.summary,
+        cvss2=cve.cvss2,
+        cvss3=cve.cvss3,
+        created_at=cve.created_at,
+        updated_at=cve.updated_at,
+        products=[product.product_name for product in products],
+        vendors=[vendor.vendor_name for vendor in vendors],
+        cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],
+        urls=[{"url": url.url, "content": url.title or None} for url in urls],
+    )
+
+    return cve_data
 
 
 # Fetch CVEs based on all user subscriptions (vendors, products, CWEs)
@@ -314,7 +372,7 @@ async def get_cves_by_all_subscriptions(user_id: int, db: Session = Depends(get_
             products=[product.product_name for product in products],
             vendors=[vendor.vendor_name for vendor in vendors],
             cwes=[cwe.cwe_id for cwe in cwes if cwe and cwe.cwe_id],
-            urls=[{"url": url.url, "content": url.content or None} for url in urls],
+            urls=[{"url": url.url, "content": url.title or None} for url in urls],
         )
         result.append(cve_data)
 

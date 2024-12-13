@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from ..models import Product, Vendor, CWE, User_Vendor, User_Product, User_CWE
 from pydantic import BaseModel
 from typing import List
@@ -9,34 +10,47 @@ router = APIRouter()
 
 
 #----------------------------------------------------------------Diapley vendors/products/cwes-------------------------------
-
-#find vendors and their products
-@router.get("/options/prod_vend")
-def find_prod_vend(db: Session = Depends(get_db)):
-    # Fetch vendors and their products in a single query
+# Modified function: Fetch vendors and the number of products each has
+@router.get("/options/vendor_product_counts")
+def get_vendor_product_counts(db: Session = Depends(get_db)):
     results = (
-        db.query(Vendor.vendor_id, Vendor.vendor_name, Product.product_name)
-        .join(Product, Product.vendor_id == Vendor.vendor_id)
+        db.query(Vendor.vendor_id, Vendor.vendor_name, func.count(Product.product_id).label("product_count"))
+        .join(Product, Product.vendor_id == Vendor.vendor_id, isouter=True)
+        .group_by(Vendor.vendor_id, Vendor.vendor_name)
         .all()
     )
 
-    # Group products by vendor
-    vendor_data = {}
-    for vendor_id, vendor_name, product_name in results:
-        if vendor_id not in vendor_data:
-            vendor_data[vendor_id] = {"vendor": vendor_name, "products": []}
-        vendor_data[vendor_id]["products"].append(product_name)
+    # Format the response
+    vendor_data = [
+        {"vendor_id": vendor_id, "vendor_name": vendor_name, "product_count": product_count}
+        for vendor_id, vendor_name, product_count in results
+    ]
 
-    # Convert dict to list for the response
-    return {"vendors_and_products": list(vendor_data.values())}
+    return {"vendors": vendor_data}
 
+# New function: Fetch all products with their vendor name
+@router.get("/options/products_with_vendors")
+def get_products_with_vendors(db: Session = Depends(get_db)):
+    results = (
+        db.query(Product.product_id, Product.product_name, Vendor.vendor_name)
+        .join(Vendor, Product.vendor_id == Vendor.vendor_id)
+        .all()
+    )
+
+    # Format the response
+    product_data = [
+        {"product_id": product_id, "product_name": product_name, "vendor_name": vendor_name}
+        for product_id, product_name, vendor_name in results
+    ]
+
+    return {"products": product_data}
 
 # find all CWEs
 @router.get("/options/cwes")
 def find_cwes(db: Session = Depends(get_db)):
     cwes = db.query(CWE).all()
     return {
-        "cwes": [{"CWE ID": cwe.cwe_id, "name": cwe.name} for cwe in cwes]
+        "cwes": [{"CWE ID": cwe.cwe_id, "name": cwe.name, "CWE url": cwe.cwe_url} for cwe in cwes]
     }
 
 

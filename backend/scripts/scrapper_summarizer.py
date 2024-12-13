@@ -1,8 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
 from transformers import pipeline
-from transformers import PegasusForConditionalGeneration, PegasusTokenizer
-
 
 def scrape_website(url):
     response = requests.get(url)

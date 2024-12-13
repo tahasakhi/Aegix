@@ -140,7 +140,8 @@ CREATE TABLE cves_urls (
     url_id SERIAL PRIMARY KEY,
     cve_id VARCHAR(50) REFERENCES cves(cve_id) ON DELETE CASCADE,
     url TEXT NOT NULL,
-    content TEXT
+    summary TEXT,
+    title TEXT
 );
 
 -- Create the solutions table
@@ -208,8 +209,11 @@ CREATE TABLE alerts (
     cve_id VARCHAR(50) REFERENCES cves(cve_id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_new_cve BOOLEAN DEFAULT TRUE,
-    is_treated BOOLEAN DEFAULT FALSE,
-    last_alert_id INT
+    is_treated BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE reminder(
+    last_treated_alert INT REFERENCES alerts(alert_id)
 );
 
 -- Trigger function to notify on new CVE
